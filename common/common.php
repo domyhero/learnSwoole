@@ -50,9 +50,9 @@ class common
     public static function server_tcp_configs()
     {
         $configs = [
-            'worker_num' => 3,              //worker进程数量
+            'worker_num' => 4,              //worker进程数量
             'reactor_num' => 4,             //reactor线程数量
-            'task_worker_num' => 2,         //task_worker进程数量
+            'task_worker_num' => 4,         //task_worker进程数量
             'max_request' => 1000,          //worker进程最大任务数,用于解决PHP进程内存溢出问题
             //'daemonize' => true,            //开启守护进程
             //'log_file' =>__DIR__ . 'server.log',    //记录server日志

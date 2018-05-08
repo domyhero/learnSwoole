@@ -78,7 +78,7 @@ class jobServer
 
     }
 
-    //客户端连接关闭触发
+    //客户端连接关闭触发¡
     public function onClose($serv,$fd,$reactor_id)
     {
 
