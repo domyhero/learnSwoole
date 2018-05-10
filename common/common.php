@@ -100,4 +100,7 @@ class common
         return $connectConfig;
     }
 
+    //进程关闭时触发此信息函数,或者发送错误信息到某个设备,发送邮件等行为
+
+
 }
