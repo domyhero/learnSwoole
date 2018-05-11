@@ -29,6 +29,48 @@ class http
         $response->header('Content-Type','text/html');
         $response->header('Charset','utf-8');
 
+        //获取get信息  $_GET
+//        common::dump($request->get);
+
+        //获取post信息
+//        common::dump($request->post);
+
+        //$_SERVER 信息
+//        common::dump($request->server);
+
+        //获取头部信息
+//        common::dump($request->header);
+
+        //根据请求头的不同类型,返回响应格式的数据 使用与微信开发场景等
+        if (isset($request->header['content_type']) && $request->header['content_type'] == 'application/json') {
+            common::dump('接收到json格式数据');
+        } elseif (isset($request->header['content_type']) && $request->header['content_type'] == 'application/xml') {
+            common::dump('接收到xml数据');
+        }
+
+        //接收到文件上传 , 这里不支持大文件
+        $file = $request->files;
+//        common::dump($request->rawContent());//获取原始数据 php://input
+//        common::dump($file);
+//        move_uploaded_file($file['dream']['tmp_name'],__DIR__ . '/upload/a.jpg');
+
+        //响应状态
+//        $response->status(200);
+
+        //设置响应cookie
+//        $response->cookie('user','dream');
+
+        //分段发送不能使用end
+//        $response->write('hahah ------');
+//        $response->write('999');
+
+        //响应上传文件
+//        $response->sendfile(__DIR__.'/upload/a.jpg');
+
+
+//        $response->end(common::html_echo("<h1> get  id : {$request->post['id']} , name : {$request->post['name']} </h1>"));
+
+
         //获取请求的server信息  即 $_SERVER 变量
         $server = $request->server;
 
@@ -57,7 +99,6 @@ class http
         //方法
         $method = (isset($path_info[3]) && !empty($path_info[3])) ? $path_info[3] : 'index';
 
-
         //结合错误处理
         try {
             $class_name = "\\{$model}\\{$controller}";
@@ -73,4 +114,7 @@ class http
 
 }
 
-new http(common::connect_config());
+register_shutdown_function('\learnswoole\common\common::handleFatal');
+
+new http(common::server_tcp_configs(),common::connect_config());
+

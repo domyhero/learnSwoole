@@ -100,7 +100,65 @@ class common
         return $connectConfig;
     }
 
-    //进程关闭时触发此信息函数,或者发送错误信息到某个设备,发送邮件等行为
+    /**
+     * http_server 响应用
+     * @param $data     内容可HTML字符串
+     * @return string
+     */
+    public static function html_echo($data)
+    {
+        return '<meta charset="UTF-8">'.$data;
+    }
 
+    //进程关闭时触发此信息函数,或者发送错误信息到某个设备,发送邮件等行为
+    public static function handleFatal()
+    {
+        $error = error_get_last(); //获取最后的错误
+        if (isset($error['type']))
+        {
+            switch ($error['type'])
+            {
+                case E_ERROR :
+                case E_PARSE :
+                case E_CORE_ERROR :
+                case E_COMPILE_ERROR :
+                    $message = $error['message'];
+                    $file = $error['file'];
+                    $line = $error['line'];
+                    $log = "$message ($file:$line)\nStack trace:\n";
+                    $trace = debug_backtrace();
+                    foreach ($trace as $i => $t)
+                    {
+                        if (!isset($t['file']))
+                        {
+                            $t['file'] = 'unknown';
+                        }
+                        if (!isset($t['line']))
+                        {
+                            $t['line'] = 0;
+                        }
+                        if (!isset($t['function']))
+                        {
+                            $t['function'] = 'unknown';
+                        }
+                        $log .= "#$i {$t['file']}({$t['line']}): ";
+                        if (isset($t['object']) and is_object($t['object']))
+                        {
+                            $log .= get_class($t['object']) . '->';
+                        }
+                        $log .= "{$t['function']}()\n";
+                    }
+                    if (isset($_SERVER['REQUEST_URI']))
+                    {
+                        $log .= '[QUERY] ' . $_SERVER['REQUEST_URI'];
+                    }
+                    //捕获并存储致命错误日志
+                    file_put_contents(__DIR__.'/log.log',$log);
+                    echo $log;
+                default:
+                    break;
+            }
+        }
+    }
 
 }
