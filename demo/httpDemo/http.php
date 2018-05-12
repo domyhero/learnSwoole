@@ -26,7 +26,8 @@ class http
     public function onRequest($request,$response)
     {
         //设置响应头 信息
-        $response->header('Content-Type','text/html');
+//        $response->header('Content-Type','text/html');
+        $response->header('Content-Type','image/jpeg');
         $response->header('Charset','utf-8');
 
         //获取get信息  $_GET
@@ -101,8 +102,11 @@ class http
 
         //结合错误处理
         try {
-            $class_name = "\\{$model}\\{$controller}";
-            $obj = new $class_name;
+
+            $response->sendfile(__DIR__.'/upload/a.jpg');
+
+//            $class_name = "\\{$model}\\{$controller}";
+//            $obj = new $class_name;
         } catch (\Exception $e) {
             $response->status(200);
             $response->end('<meta charset="UTF_8">'.$e->getMessage());
