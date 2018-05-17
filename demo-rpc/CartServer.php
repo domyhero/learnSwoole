@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * 购物车代码服务端
  * Created by PhpStorm.
  * User: suntoo-ssd-02
  * Date: 2018/5/17
@@ -13,6 +14,7 @@ class CartServer
 {
     private $serv;
     public $data;
+    private $tcpServ;
 
     function __construct($config,$cliData)
     {
@@ -24,6 +26,12 @@ class CartServer
         $this->serv->on('workerStart', [$this, 'onWorkerStart']);
         $this->serv->on('message', [$this, 'onMessage']);
         $this->serv->on('close', [$this, 'onClose']);
+        $this->serv->on('receive',[$this,'onReceive']);
+        $this->serv->on('request',[$this,'onRequest']);
+
+        //监听tcp链接
+
+
         $this->serv->start();
     }
 
@@ -44,6 +52,12 @@ class CartServer
                 swoole_timer_tick(2000, function ($id) use ($cli) {
                    $cli->push('',9);//发送ping 包, 此类型ping包为swoole底层设计,即不会触发onmessage事件
                 });
+            }, function ($cli,$frame) {
+                if (!empty($frame->data)) {
+                    common::dump("接收到消息 : ");
+                    common::dump($frame->data);
+                }
+
             });
         }
     }
@@ -52,6 +66,9 @@ class CartServer
     {
         common::dump("CartServer : 接收到消息 : ");
         common::dump($frame->data);
+
+        //将处理后的数据返出
+        $serv->send($frame->fd,'ok,i know you');
     }
 
     public function onClose($serv,$fd,$reactorId)
@@ -59,10 +76,20 @@ class CartServer
         common::dump("客户端 : {$fd} 关闭了");
     }
 
+    public function onReceive()
+    {
+        
+    }
+
+    public function onRequest()
+    {
+        
+    }
+
 }
 
 $config = [
-    'worker_num' => 2,
+    'worker_num' => 1,
     'package_max_length' => 1024*1024*10,
 ];
 

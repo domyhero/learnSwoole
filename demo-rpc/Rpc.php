@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * 服务中心
  * Created by PhpStorm.
  * User: suntoo-ssd-02
  * Date: 2018/5/17
@@ -8,12 +9,13 @@
  */
 require_once dirname(__DIR__).DIRECTORY_SEPARATOR.'autoloader.php';
 use learnswoole\common\common;
+use learnswoole\tool\TcpClient;
+use learnswoole\tool\httpClient;
 class Rpc
 {
-
-
     private $serv;
     private $redis;
+    protected $tcpServer;
 
     function __construct($config)
     {
@@ -24,7 +26,22 @@ class Rpc
         $this->serv->on('workerStart', [$this, 'onWorkerStart']);
         $this->serv->on('message', [$this, 'onMessage']);
         $this->serv->on('close', [$this, 'onClose']);
+        $this->serv->on('receive', [$this, 'onReceive']);
+        $this->serv->on('request', [$this, 'onRequest']);
+
+
+        //监听tcp 连接
+        $this->tcpServer = $this->serv->addlistener('0.0.0.0',9500,SWOOLE_SOCK_TCP);
+        $this->tcpServer->set([
+            'worker_num' => 2,
+            'package_max_length' => 1024*1024*10,
+            'max_request' => 3000,
+        ]);
+
+
         $this->serv->start();
+
+
     }
 
 
@@ -79,8 +96,64 @@ class Rpc
                 }
             }
         }
+    }
 
+    //接收到tcp连接消息时触发
+    public function onReceive($serv,$fd,$reactot_id,$data)
+    {
+        common::dump($data);
+        //接收消息 做服务分发
+        $this->rpcSend($data,$serv,$fd);
+//        common::dump("rpc服务中心 将得到的数据 返回给 客户端");
+//        将数据返回给客户端
+//        $serv->send($fd,$res);
 
+    }
+
+    //rpc服务分发
+    public function rpcSend($data,$serv,$fd)
+    {
+        $data = json_decode($data,true);
+        //获取服务名称
+        $serverName = 'server:'.$data['service'];
+        //组装请求数据
+        $request['action'] = $data['action'];
+        $request['params'] = $data['params'];
+        $request['method'] = 'getData';//获取数据方法
+
+        //判断当前的服务是否存活,健康检查,否则返回404
+        $codeServer = $this->redis->SMEMBERS($serverName);
+        common::dump("rpc服务分发中检测 {$serverName} 的存活状态:");
+        common::dump($codeServer);
+        if (empty($codeServer)) {
+            //直接返回404 页面
+            return '404 not found';
+        }
+        //中间环节 可以根据多个同样的服务不同的ip 进行一个择优 负载均衡设置
+        //....
+
+        //这里直接请求处理
+        $codeServerData = json_decode($codeServer[0],true);
+
+        common::dump($codeServerData);
+        //调用代码服务端获取数据,那么代码服务端 也需要同步 http 监听 并返回数据
+        $client = new httpClient($codeServerData['ip'],$codeServerData['port']);
+        common::dump("rpc服务分发中 向 {$serverName} 发送数据请求");
+        common::dump($request);
+        $client->asyncWebsocket(function ($cli) use ($request) {
+            $cli->push(json_encode($request));
+        },function ($cli,$frame) use ($serv,$fd) {
+            common::dump("服务中心 146 行接收到了信息 ; 接收到消息 : ");
+            common::dump($frame->data);
+            if (!empty($frame->data)) {
+                $serv->send($fd,$frame->data);
+            }
+        });
+    }
+
+    public function onRequest()
+    {
+        
     }
 
     public function onClose($serv,$fd,$reactorId)
@@ -91,7 +164,7 @@ class Rpc
 }
 
 $config = [
-    'worker_num' => 2,//2个工作进程
+    'worker_num' => 1,//2个工作进程
     'package_max_length' => 1024*1024*10,
     'max_request' => 3000,
     'heartbeat_idle_time' => 6,
